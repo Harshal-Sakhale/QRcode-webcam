@@ -1,0 +1,117 @@
+<!--
+     QRcode scanner real time on webcam
+-->
+<html>
+<head>
+<title>QR SCANNER v3.6</title>
+</head>
+<body>
+
+<div class="video-wrap">
+	 <video hidden="hidden" id="video" playsinline autoplay> </video> 
+	<!-- <video style="display: none;" id="video" playsinline autoplay> </video>-->
+</div> 
+<div class="controller">
+	<button id="snap" onclick="myprev()">START [ QR Scan ]</button>
+	<button id="stop" onclick="mystop()">STOP  [ QR Scan ]</button>
+</div>
+<audio id="sound" src="QRCODE_DONE.ogg" autoplay> </audio>
+<canvas id="canvas"></canvas>
+<p id="texta"></p>
+<script type="text/javascript" src="myscript.js"> </script>
+<script>
+if (/Android/.test(navigator.userAgent))
+{
+  document.body.style.fontSize='50px';
+  canvas.style.width=240*3;
+  canvas.style.height=320*3;
+  document.getElementById('snap').style.fontSize='50px';
+  document.getElementById('stop').style.fontSize='50px';
+}
+else
+{
+  document.body.style.fontSize='30px';
+  canvas.style.width=320*2;
+  canvas.style.height=240*2;
+  document.getElementById('snap').style.fontSize='30px';
+  document.getElementById('stop').style.fontSize='30px';
+}
+
+
+var myht=240;
+var mywd=320;
+
+const video=document.getElementById('video');
+
+const snap=document.getElementById('snap');
+const errorMsgElement=document.getElementById('span#ErrorMsg');
+  const canvas_real = document.getElementById('canvas');
+  const canvas_tmp  = document.createElement('canvas');
+  
+  var ctx_real = canvas_real.getContext('2d');
+  var ctx_tmp = canvas_tmp.getContext('2d');
+  var lastres = null;
+  var myTimer = null;
+  var qrc       = new QRCode.Decoder();
+  qrc.setOptions({ canOverwriteImage: false });
+  
+function update_canvas()
+{
+  ctx_tmp.drawImage(video,0,0,mywd,myht);
+  var pixelData = ctx_tmp.getImageData(0,0,mywd,myht);
+  
+  var result    = qrc.decode(pixelData.data, pixelData.width, pixelData.height);
+  
+  ctx_real.putImageData(pixelData,0,0);
+
+  if (result) 
+        {
+          markQRCodeArea(result.location, result.version, ctx_real);
+          texta.textContent=result.data;
+          if (lastres != result.data)
+          {
+            //sound.src="QRCODE_DONE.ogg";
+            sound.play();
+            lastres=result.data;
+          }
+       }
+}
+
+function myprev()
+{
+ myTimer=setInterval(update_canvas, 35);
+}
+
+function mystop()
+{
+clearInterval(myTimer);
+}
+
+const constraints = 
+{
+	audio: false,
+	video: {
+		width: mywd, height: myht,
+		facingMode: 'environment'
+	}
+};
+
+async function init()
+{
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  window.stream = stream;
+  video.srcObject = stream;
+  mywd = stream.getTracks()[0].getSettings().width;
+  myht = stream.getTracks()[0].getSettings().height;
+  canvas_tmp.width  = mywd;
+  canvas_tmp.height = myht;
+  canvas_real.width  = mywd;
+  canvas_real.height = myht;
+}
+
+init();
+
+</script>
+</body>
+</html>
+
